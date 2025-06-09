@@ -119,6 +119,12 @@ else()
     set(DFTRACER_FUNCTION_FLAGS )
 endif()
 
+# Options
+option (DFTRACER_ENABLE_HIP_TRACING "Enable HIP Tracing" OFF)
+if (DFTRACER_ENABLE_HIP_TRACING)
+    set(DFTRACER_HIP_TRACING_ENABLE 1)
+endif()
+
 option (DFTRACER_ENABLE_MPI "Enable MPI" OFF)
 if (DFTRACER_ENABLE_MPI)
     set(DFTRACER_MPI_ENABLE 1)
@@ -250,6 +256,12 @@ if (NOT DFTRACER_DISABLE_HWLOC)
     else ()
         message(FATAL_ERROR "-- [DFTRACER] hwloc is needed for ${PROJECT_NAME} build with -DDFTRACER_DISABLE_HWLOC-ON option.")
     endif ()
+endif()
+
+if (DFTRACER_ENABLE_HIP_TRACING)
+  find_package(rocprofiler-sdk REQUIRED) 
+  set(HIP_TRACING_LIBRARIES rocprofiler-sdk::rocprofiler-sdk)
+  set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${HIP_TRACING_LIBRARIES})
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
