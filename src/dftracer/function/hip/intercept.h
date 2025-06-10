@@ -1,18 +1,34 @@
 // Created by druva on 6/9/25
 
-#ifndef DFTRACER_FUNCTION_H
-#define DFTRACER_FUNCTION_H
-
 #include <dftracer/dftracer_config.hpp>
-// #ifdef DFTRACER_HIPTRACING_ENABLE
+#ifdef DFTRACER_HIP_TRACING_ENABLE
 
-class HipInterceptFunction : public dftracer::GenericFunction {
+
+#include <dftracer/function/generic_function.h>
+
+#include <rocprofiler-sdk/buffer.h>
+#include <rocprofiler-sdk/buffer_tracing.h>
+#include <rocprofiler-sdk/registration.h>
+#include <rocprofiler-sdk/rocprofiler.h>
+#include <rocprofiler-sdk/cxx/name_info.hpp>
+
+namespace dftracer {
+class HIPFunction : public dftracer::GenericFunction {
  public:
-  buffer_name_info client_name_info;
+  rocprofiler::sdk::buffer_name_info client_name_info;
+  rocprofiler_buffer_id_t client_buffer;
+  rocprofiler_context_id_t client_ctx;
+
+  static void tool_tracing_callback(rocprofiler_context_id_t context,
+                             rocprofiler_buffer_id_t buffer_id,
+                             rocprofiler_record_header_t** headers,
+                             size_t num_headers, void* user_data,
+                             uint64_t drop_count);
   void initialize() {
     DFTRACER_LOG_DEBUG("HIP Intercept class initialized", "");
+    void * tool_data;
+    client_ctx = {0};
     client_name_info = rocprofiler::sdk::get_buffer_tracing_names();
-    logger = DFT_LOGGER_INIT();
     rocprofiler_create_context(&client_ctx);
     constexpr auto buffer_size_bytes = 4096;
     constexpr auto buffer_watermark_bytes =
@@ -21,13 +37,12 @@ class HipInterceptFunction : public dftracer::GenericFunction {
     rocprofiler_create_buffer(client_ctx, buffer_size_bytes,
                               buffer_watermark_bytes,
                               ROCPROFILER_BUFFER_POLICY_LOSSLESS,
-                              tool_tracing_callback, tool_data, &client_buffer);
+                              dftracer::HIPFunction::tool_tracing_callback, tool_data, &client_buffer);
 
     for (auto itr : {ROCPROFILER_BUFFER_TRACING_HSA_CORE_API,
                      ROCPROFILER_BUFFER_TRACING_HSA_AMD_EXT_API}) {
-      rocprofiler_configure_buffer_tracing_service(
-                           client_ctx, itr, nullptr, 0, client_buffer),
-                       "buffer tracing service configure");
+      rocprofiler_configure_buffer_tracing_service(client_ctx, itr, nullptr, 0,
+                                                   client_buffer);
     }
 
     rocprofiler_configure_buffer_tracing_service(
@@ -73,4 +88,7 @@ class HipInterceptFunction : public dftracer::GenericFunction {
     rocprofiler_stop_context(client_ctx);
     rocprofiler_flush_buffer(client_buffer);
   }
-}
+};
+}  // namespace dftracer
+
+#endif

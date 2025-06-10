@@ -3,6 +3,7 @@
 //
 #include <dftracer/core/dftracer_main.h>
 #include <dftracer/finstrument/functions.h>
+#include <dftracer/function/hip/intercept.h>
 template <>
 std::shared_ptr<dftracer::DFTracerCore>
     dftracer::Singleton<dftracer::DFTracerCore>::instance = nullptr;
@@ -126,6 +127,12 @@ bool dftracer::DFTracerCore::finalize() {
       auto function_instance = dftracer::Function::get_instance();
       if (function_instance != nullptr) {
         function_instance->finalize();
+      }
+#endif
+#ifdef DFTRACER_HIP_TRACING_ENABLE
+      auto hip_instance = dftracer::HIPFunction::get_instance();
+      if (hip_instance != nullptr) {
+        hip_instance->finalize();
       }
 #endif
     }
@@ -271,10 +278,19 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
 #ifdef DFTRACER_FTRACING_ENABLE
         dftracer::Function::get_instance();
 #endif
+#ifdef DFTRACER_HIP_TRACING_ENABLE
+        dftracer::HIPFunction::get_instance();
+#endif
       }
     } else {
 #ifdef DFTRACER_FTRACING_ENABLE
       dftracer::Function::get_instance()->finalize();
+#endif
+#ifdef DFTRACER_HIP_TRACING_ENABLE
+      auto hip_instance = dftracer::HIPFunction::get_instance();
+      if (hip_instance != nullptr) {
+        hip_instance->finalize();
+      }
 #endif
     }
     is_initialized = true;

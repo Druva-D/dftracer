@@ -1,6 +1,8 @@
+#include <dftracer/dftracer_config.hpp>
+#ifdef DFTRACER_HIP_TRACING_ENABLE
+
 #include <rocprofiler-sdk/buffer.h>
 #include <rocprofiler-sdk/buffer_tracing.h>
-#include <rocprofiler-sdk/callback_tracing.h>
 #include <rocprofiler-sdk/external_correlation.h>
 #include <rocprofiler-sdk/fwd.h>
 #include <rocprofiler-sdk/internal_threading.h>
@@ -283,3 +285,5 @@ void tool_tracing_callback(rocprofiler_context_id_t context,
     }
   }
 }
+
+#endif

@@ -1,9 +1,6 @@
 //
 // Created by druva on 6/9/25 from finstrument/functions.h
 //
-
-#ifndef DFTRACER_FUNCTION_H
-#define DFTRACER_FUNCTION_H
 /* Config Header */
 #include <dftracer/dftracer_config.hpp>
 
@@ -38,11 +35,12 @@ class GenericFunction {
   virtual void finalize();
   virtual void log_event();
 
-  ~GenericFunction() {}
+  virtual ~GenericFunction() {}
   static std::shared_ptr<GenericFunction> get_instance() {
     DFTRACER_LOG_DEBUG("POSIX class get_instance", "");
     if (!stop_trace && instance == nullptr) {
       instance = std::make_shared<GenericFunction>();
+      instance->initialize(); // Should call the child class initialize
     }
     return instance;
   }
@@ -50,5 +48,3 @@ class GenericFunction {
 };
 
 }  // namespace dftracer
-#endif
-#endif  // DFTRACER_FUNCTION_H
