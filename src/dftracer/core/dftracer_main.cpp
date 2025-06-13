@@ -275,11 +275,17 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
                                                conf->gotcha_priority);
           }
         }
+        DFTRACER_LOG_DEBUG("Checking if FTRACING and HIP_TRACING are enabled",
+                           "");
 #ifdef DFTRACER_FTRACING_ENABLE
         dftracer::Function::get_instance();
 #endif
 #ifdef DFTRACER_HIP_TRACING_ENABLE
+        DFTRACER_LOG_DEBUG("HIP tracing is enabled", "");
         dftracer::HIPFunction::get_instance();
+        // cast to HIPFunction
+        // auto hip_instance = std::dynamic_pointer_cast<dftracer::HIPFunction>(
+        //     dftracer::HIPFunction::get_instance());
 #endif
       }
     } else {

@@ -11,8 +11,6 @@
 #include <dftracer/utils/posix_internal.h>
 
 /* External Header */
-#include <dlfcn.h>
-
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
@@ -20,9 +18,7 @@
 
 namespace dftracer {
 class GenericFunction {
- private:
-  static std::shared_ptr<GenericFunction> instance;
-  static bool stop_trace;
+  // static bool stop_trace;
 
  public:
   std::shared_ptr<DFTLogger> logger;
@@ -31,20 +27,12 @@ class GenericFunction {
     logger = DFT_LOGGER_INIT();
   }
 
-  virtual void initialize();
-  virtual void finalize();
-  virtual void log_event();
+  virtual void initialize() {}
+  virtual void finalize() {}
+  // virtual void log_event();
 
-  virtual ~GenericFunction() {}
-  static std::shared_ptr<GenericFunction> get_instance() {
-    DFTRACER_LOG_DEBUG("POSIX class get_instance", "");
-    if (!stop_trace && instance == nullptr) {
-      instance = std::make_shared<GenericFunction>();
-      instance->initialize(); // Should call the child class initialize
-    }
-    return instance;
-  }
-  bool is_active() { return !stop_trace; }
+  virtual ~GenericFunction() {};
+  // bool is_active() { return !stop_trace; }
 };
 
 }  // namespace dftracer
