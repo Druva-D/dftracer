@@ -16,26 +16,25 @@
 
 // int dftracer::GenericFunction::stop_trace = false;
 
+template <>
+std::shared_ptr<dftracer::HIPFunction>
+    dftracer::Singleton<dftracer::HIPFunction>::instance = nullptr;
+template <>
+bool dftracer::Singleton<dftracer::HIPFunction>::stop_creating_instances =
+    false;
 namespace dftracer {
-std::shared_ptr<dftracer::HIPFunction> dftracer::HIPFunction::instance =
-    nullptr;
 
-rocprofiler::sdk::buffer_name_info HIPFunction::client_name_info;
-
-std::unordered_map<rocprofiler_kernel_id_t, kernel_symbol_data_t>
-    HIPFunction::client_kernels;
-
-rocprofiler_buffer_id_t HIPFunction::client_buffer;
-rocprofiler_context_id_t HIPFunction::client_ctx;
+TimeResolution HIPFunction::transform_time(rocprofiler_timestamp_t timestamp) {
+  // Convert from nanoseconds to microseconds
+  return timestamp / 1000;
+}
 
 void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
                                         rocprofiler_buffer_id_t buffer_id,
                                         rocprofiler_record_header_t** headers,
                                         size_t num_headers, void* user_data,
                                         uint64_t drop_count) {
-  auto gen_function = dftracer::HIPFunction::get_instance();
-  auto function =
-      std::dynamic_pointer_cast<dftracer::HIPFunction>(gen_function);
+  auto function = dftracer::Singleton<dftracer::HIPFunction>::get_instance();
   auto client_name_info = function->client_name_info;
   auto client_kernels = function->client_kernels;
   assert(user_data != nullptr);
@@ -89,12 +88,14 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
 
       std::string event_name =
           std::string(client_name_info[record->kind][record->operation]);
-      function->logger->log(
-          event_name.c_str(), kind_name.c_str(),
-          static_cast<TimeResolution>(record->start_timestamp),
-          static_cast<TimeResolution>(record->end_timestamp -
-                                      record->start_timestamp),
-          metadata);
+
+      function->logger->enter_event();
+      function->logger->log(event_name.c_str(), kind_name.c_str(),
+                            function->transform_time(record->start_timestamp),
+                            function->transform_time(record->end_timestamp -
+                                                     record->start_timestamp),
+                            metadata);
+      function->logger->exit_event();
 
     } else if (header->category == ROCPROFILER_BUFFER_CATEGORY_TRACING &&
                header->kind == ROCPROFILER_BUFFER_TRACING_HIP_RUNTIME_API) {
@@ -112,12 +113,13 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
 
       std::string event_name =
           std::string(client_name_info[record->kind][record->operation]);
-      function->logger->log(
-          event_name.c_str(), kind_name.c_str(),
-          static_cast<TimeResolution>(record->start_timestamp),
-          static_cast<TimeResolution>(record->end_timestamp -
-                                      record->start_timestamp),
-          metadata);
+      function->logger->enter_event();
+      function->logger->log(event_name.c_str(), kind_name.c_str(),
+                            function->transform_time(record->start_timestamp),
+                            function->transform_time(record->end_timestamp -
+                                                     record->start_timestamp),
+                            metadata);
+      function->logger->exit_event();
 
     } else if (header->category == ROCPROFILER_BUFFER_CATEGORY_TRACING &&
                header->kind == ROCPROFILER_BUFFER_TRACING_KERNEL_DISPATCH) {
@@ -157,12 +159,13 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
 
       std::string event_name = std::string(
           client_kernels.at(record->dispatch_info.kernel_id).kernel_name);
-      function->logger->log(
-          event_name.c_str(), kind_name.c_str(),
-          static_cast<TimeResolution>(record->start_timestamp),
-          static_cast<TimeResolution>(record->end_timestamp -
-                                      record->start_timestamp),
-          metadata);
+      function->logger->enter_event();
+      function->logger->log(event_name.c_str(), kind_name.c_str(),
+                            function->transform_time(record->start_timestamp),
+                            function->transform_time(record->end_timestamp -
+                                                     record->start_timestamp),
+                            metadata);
+      function->logger->exit_event();
 
     } else if (header->category == ROCPROFILER_BUFFER_CATEGORY_TRACING &&
                header->kind == ROCPROFILER_BUFFER_TRACING_MEMORY_COPY) {
@@ -183,12 +186,13 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
 
       std::string event_name =
           std::string(client_name_info.at(record->kind, record->operation));
-      function->logger->log(
-          event_name.c_str(), kind_name.c_str(),
-          static_cast<TimeResolution>(record->start_timestamp),
-          static_cast<TimeResolution>(record->end_timestamp -
-                                      record->start_timestamp),
-          metadata);
+      function->logger->enter_event();
+      function->logger->log(event_name.c_str(), kind_name.c_str(),
+                            function->transform_time(record->start_timestamp),
+                            function->transform_time(record->end_timestamp -
+                                                     record->start_timestamp),
+                            metadata);
+      function->logger->exit_event();
 
     } else if (header->category == ROCPROFILER_BUFFER_CATEGORY_TRACING &&
                header->kind == ROCPROFILER_BUFFER_TRACING_PAGE_MIGRATION) {
@@ -250,12 +254,13 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       // Note: page migration uses record->pid instead of getpid()
       std::string event_name =
           std::string(client_name_info.at(record->kind, record->operation));
-      function->logger->log(
-          event_name.c_str(), kind_name.c_str(),
-          static_cast<TimeResolution>(record->start_timestamp),
-          static_cast<TimeResolution>(record->end_timestamp -
-                                      record->start_timestamp),
-          metadata);
+      function->logger->enter_event();
+      function->logger->log(event_name.c_str(), kind_name.c_str(),
+                            function->transform_time(record->start_timestamp),
+                            function->transform_time(record->end_timestamp -
+                                                     record->start_timestamp),
+                            metadata);
+      function->logger->exit_event();
 
     } else if (header->category == ROCPROFILER_BUFFER_CATEGORY_TRACING &&
                header->kind == ROCPROFILER_BUFFER_TRACING_SCRATCH_MEMORY) {
@@ -276,12 +281,13 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       metadata->insert_or_assign("flags", record->flags);
       std::string event_name =
           std::string(client_name_info.at(record->kind, record->operation));
-      function->logger->log(
-          event_name.c_str(), kind_name.c_str(),
-          static_cast<TimeResolution>(record->start_timestamp),
-          static_cast<TimeResolution>(record->end_timestamp -
-                                      record->start_timestamp),
-          metadata);
+      function->logger->enter_event();
+      function->logger->log(event_name.c_str(), kind_name.c_str(),
+                            function->transform_time(record->start_timestamp),
+                            function->transform_time(record->end_timestamp -
+                                                     record->start_timestamp),
+                            metadata);
+      function->logger->exit_event();
 
     } else {
       continue;  // Skip this record if category or kind is unknown
@@ -304,11 +310,11 @@ void HIPFunction::thread_postcreate(rocprofiler_runtime_library_t lib,
 int HIPFunction::tool_init(rocprofiler_client_finalize_t fini_func,
                            void* tool_data) {
   DFTRACER_LOG_DEBUG("HIP Intercept class initialized", "");
-  auto function = HIPFunction::get_instance();
-  auto client_buffer = HIPFunction::client_buffer;
-  auto client_ctx = HIPFunction::client_ctx;
+  auto function = dftracer::Singleton<dftracer::HIPFunction>::get_instance();
+  auto client_buffer = function->client_buffer;
+  auto client_ctx = function->client_ctx;
   client_ctx = {0};
-  client_name_info = rocprofiler::sdk::get_buffer_tracing_names();
+  function->client_name_info = rocprofiler::sdk::get_buffer_tracing_names();
 
   rocprofiler_create_context(&client_ctx);
   constexpr auto buffer_size_bytes = 4096;

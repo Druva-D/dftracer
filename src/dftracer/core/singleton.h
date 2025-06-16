@@ -28,8 +28,11 @@ class Singleton {
   template <typename... Args>
   static std::shared_ptr<T> get_instance(Args... args) {
     if (stop_creating_instances) return nullptr;
-    if (instance == nullptr)
+    if (instance == nullptr) {
       instance = std::make_shared<T>(std::forward<Args>(args)...);
+      instance->initialize();
+    }
+
     return instance;
   }
 
@@ -39,7 +42,10 @@ class Singleton {
   Singleton &operator=(const Singleton) = delete; /* deleting = operatos*/
  public:
   Singleton(const Singleton &) = delete; /* deleting copy constructor. */
-  static void finalize() { stop_creating_instances = true; }
+  static void finalize() {
+    stop_creating_instances = true;
+    instance->finalize();
+  }
 
  protected:
   static bool stop_creating_instances;

@@ -130,7 +130,8 @@ bool dftracer::DFTracerCore::finalize() {
       }
 #endif
 #ifdef DFTRACER_HIP_TRACING_ENABLE
-      auto hip_instance = dftracer::HIPFunction::get_instance();
+      auto hip_instance =
+          dftracer::Singleton<dftracer::HIPFunction>::get_instance();
       if (hip_instance != nullptr) {
         hip_instance->finalize();
       }
@@ -282,7 +283,7 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
 #endif
 #ifdef DFTRACER_HIP_TRACING_ENABLE
         DFTRACER_LOG_DEBUG("HIP tracing is enabled", "");
-        dftracer::HIPFunction::get_instance();
+        dftracer::Singleton<dftracer::HIPFunction>::get_instance();
         // cast to HIPFunction
         // auto hip_instance = std::dynamic_pointer_cast<dftracer::HIPFunction>(
         //     dftracer::HIPFunction::get_instance());
@@ -293,7 +294,8 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
       dftracer::Function::get_instance()->finalize();
 #endif
 #ifdef DFTRACER_HIP_TRACING_ENABLE
-      auto hip_instance = dftracer::HIPFunction::get_instance();
+      auto hip_instance =
+          dftracer::Singleton<dftracer::HIPFunction>::get_instance();
       if (hip_instance != nullptr) {
         hip_instance->finalize();
       }

@@ -21,27 +21,18 @@ using kernel_symbol_data_t =
 
 class HIPFunction : public dftracer::GenericFunction {
  private:
-  static std::shared_ptr<HIPFunction> instance;
-
- public:
-  HIPFunction() {
-    DFTRACER_LOG_DEBUG("Creating HIPFunction instance",
-                       "");  // Initialize parent
-  }
-  static rocprofiler::sdk::buffer_name_info client_name_info;
-  static rocprofiler_buffer_id_t client_buffer;
-  static rocprofiler_context_id_t client_ctx;
-  static std::unordered_map<rocprofiler_kernel_id_t, kernel_symbol_data_t>
+  rocprofiler::sdk::buffer_name_info client_name_info;
+  rocprofiler_buffer_id_t client_buffer;
+  rocprofiler_context_id_t client_ctx;
+  std::unordered_map<rocprofiler_kernel_id_t, kernel_symbol_data_t>
       client_kernels;
 
-  static std::shared_ptr<HIPFunction> get_instance() {
-    DFTRACER_LOG_DEBUG("POSIX HIPFunction class get_instance", "");
-    if (instance == nullptr) {
-      DFTRACER_LOG_DEBUG("Creating new instance of child function", "");
-      instance = std::make_shared<HIPFunction>();
-      instance->initialize();  // Should call the child class initialize
-    }
-    return instance;
+  TimeResolution transform_time(rocprofiler_timestamp_t timestamp);
+
+ public:
+  HIPFunction() : dftracer::GenericFunction() {
+    DFTRACER_LOG_DEBUG("Creating HIPFunction instance",
+                       "");  // Initialize parent
   }
 
   static void tool_tracing_callback(rocprofiler_context_id_t context,

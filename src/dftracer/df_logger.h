@@ -256,7 +256,7 @@ class DFTLogger {
 
   inline TimeResolution get_time() {
     DFTRACER_LOG_DEBUG("DFTLogger.get_time", "");
-    struct timeval tv {};
+    struct timeval tv{};
     gettimeofday(&tv, NULL);
     TimeResolution t = 1000000 * tv.tv_sec + tv.tv_usec;
     return t;
@@ -398,6 +398,8 @@ class DFTLogger {
     file[PATH_MAX - 1] = '\0';
     return hash_and_store_str(file, name);
   }
+
+  void initialize() {}
 
   inline void finalize() {
     DFTRACER_LOG_DEBUG("DFTLogger.finalize", "");

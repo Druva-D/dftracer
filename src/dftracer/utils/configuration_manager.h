@@ -29,6 +29,7 @@ class ConfigurationManager {
   bool throw_error;
   size_t write_buffer_size;
   ConfigurationManager();
+  void initialize() {}
   void finalize() {}
 };
 }  // namespace dftracer
