@@ -4,8 +4,10 @@
 #define DFTRACER_HIP_INTERCEPT_H
 
 #include <dftracer/dftracer_config.hpp>
+#define DFTRACER_HIP_TRACING_ENABLE 1
 #ifdef DFTRACER_HIP_TRACING_ENABLE
 
+#include <dftracer/core/logging.h>
 #include <dftracer/function/generic_function.h>
 #include <rocprofiler-sdk/buffer.h>
 #include <rocprofiler-sdk/buffer_tracing.h>
@@ -13,6 +15,13 @@
 #include <rocprofiler-sdk/rocprofiler.h>
 
 #include <rocprofiler-sdk/cxx/name_info.hpp>
+
+namespace conf {
+
+extern "C" rocprofiler_tool_configure_result_t* roc_conf(
+    uint32_t version, const char* runtime_version, uint32_t priority,
+    rocprofiler_client_id_t* id);
+}
 
 namespace dftracer {
 
@@ -27,12 +36,15 @@ class HIPFunction : public dftracer::GenericFunction {
   std::unordered_map<rocprofiler_kernel_id_t, kernel_symbol_data_t>
       client_kernels;
 
+  TimeResolution time_diff;
+  TimeResolution transform_timestamp(rocprofiler_timestamp_t timestamp);
   TimeResolution transform_time(rocprofiler_timestamp_t timestamp);
 
  public:
   HIPFunction() : dftracer::GenericFunction() {
     DFTRACER_LOG_DEBUG("Creating HIPFunction instance",
                        "");  // Initialize parent
+    time_diff = 0;
   }
 
   static void tool_tracing_callback(rocprofiler_context_id_t context,
@@ -52,15 +64,24 @@ class HIPFunction : public dftracer::GenericFunction {
   static void tool_fini(void* tool_data);
 
   void initialize() override {
-    rocprofiler_force_configure(&rocprofiler_configure);
-    rocprofiler_start_context(client_ctx);
+    DFTRACER_LOG_DEBUG("Initializing HIPFunction instance", "");
+    // TODO: DFTRACER DEBUG LOGS aren't getting printed here
+    rocprofiler_force_configure(&conf::roc_conf);
+    rocprofiler_status_t status;
+    status = rocprofiler_start_context(client_ctx);
+    if (status != ROCPROFILER_STATUS_SUCCESS) {
+      DFTRACER_LOG_ERROR("HIP Intercept context start failed: status, %d\n",
+                         status);
+    }
   }
 
   void finalize() override {
+    DFTRACER_LOG_DEBUG("Finalizing HIPFunction instance", "");
     rocprofiler_stop_context(client_ctx);
     rocprofiler_flush_buffer(client_buffer);
   }
 };
+
 }  // namespace dftracer
 
 #endif

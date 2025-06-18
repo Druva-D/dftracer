@@ -4,6 +4,10 @@
 #include <dftracer/core/dftracer_main.h>
 #include <dftracer/finstrument/functions.h>
 #include <dftracer/function/hip/intercept.h>
+
+// TODO: Figure out why I have to manually enable it
+#define DFTRACER_HIP_TRACING_ENABLE 1
+
 template <>
 std::shared_ptr<dftracer::DFTracerCore>
     dftracer::Singleton<dftracer::DFTracerCore>::instance = nullptr;
@@ -284,9 +288,8 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
 #ifdef DFTRACER_HIP_TRACING_ENABLE
         DFTRACER_LOG_DEBUG("HIP tracing is enabled", "");
         dftracer::Singleton<dftracer::HIPFunction>::get_instance();
-        // cast to HIPFunction
-        // auto hip_instance = std::dynamic_pointer_cast<dftracer::HIPFunction>(
-        //     dftracer::HIPFunction::get_instance());
+#else
+        DFTRACER_LOG_DEBUG("HIP tracing is not enabled", "");
 #endif
       }
     } else {
