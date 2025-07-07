@@ -1,4 +1,5 @@
 #include <dftracer/finstrument/functions.h>
+#define DFTRACER_FTRACING_ENABLE 1
 #ifdef DFTRACER_FTRACING_ENABLE
 #include <link.h>
 std::shared_ptr<dftracer::Function> dftracer::Function::instance = nullptr;
@@ -25,6 +26,7 @@ int dftracer::Function::exit_event(std::string &name, TimeResolution &start) {
 }
 
 void __cyg_profile_func_enter(void *func, void *caller) {
+  printf("Enter called\n");
   auto function = dftracer::Function::get_instance();
   if (!function->is_active()) return;
   Dl_info info;

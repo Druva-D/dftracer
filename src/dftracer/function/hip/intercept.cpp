@@ -15,6 +15,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#define MAX_EVENT_NAME_LENGTH 15
+
 namespace conf {
 extern "C" rocprofiler_tool_configure_result_t* roc_conf(
     uint32_t version, const char* runtime_version, uint32_t priority,
@@ -48,28 +50,61 @@ bool dftracer::Singleton<dftracer::HIPFunction>::stop_creating_instances =
     false;
 namespace dftracer {
 
-TimeResolution HIPFunction::transform_time(rocprofiler_timestamp_t timestamp) {
+TimeResolution HIPFunction::transform_time(rocprofiler_timestamp_t end_time,
+                                           rocprofiler_timestamp_t start_time) {
   // Convert from nanoseconds to microseconds
-  return timestamp / 1000;
+  // Convert to float and use floor
+  return std::floor(end_time / 1000.0) - std::floor(start_time / 1000.0);
 }
 
 TimeResolution HIPFunction::transform_timestamp(
     rocprofiler_timestamp_t timestamp) {
   // Timestamp refers to number of nanoseconds since last system restart
   if (time_diff == 0) {
+    // I removed the if statement and tested that the time_diff remains the same
+    // across all calls max variation = 1 microsecond
+    // This means that rocprofiler_get_timestamp is consistent across calls ->
+    // is in sync with logger->get_time()
     rocprofiler_timestamp_t roctime;
     rocprofiler_get_timestamp(&roctime);
-    time_diff = logger->get_time() - roctime / 1000;
+    time_diff = logger->get_time() - std::floor(roctime / 1000.0);
   }
   // roctime and get_time point to the current time - we are transforming the
   // timestamp from the rocm timeline to the dftracer timeline
-  TimeResolution start_time = timestamp / 1000 + time_diff;
-  DFTRACER_LOG_DEBUG("HIPFunction::transform_timestamp",
-                     "timestamp=" + std::to_string(timestamp) +
-                         ", start_time=" + std::to_string(start_time));
+  TimeResolution start_time = std::floor(timestamp / 1000.0) + time_diff;
   // Convert to absolute timestamp
   // System restart time
   return start_time;
+}
+void HIPFunction::tool_code_object_callback(
+    rocprofiler_callback_tracing_record_t record,
+    rocprofiler_user_data_t* user_data, void* callback_data) {
+  DFTRACER_LOG_DEBUG("HIPFunction::tool_code_object_callback", "");
+  auto function = dftracer::Singleton<dftracer::HIPFunction>::get_instance();
+  if (record.kind == ROCPROFILER_CALLBACK_TRACING_CODE_OBJECT &&
+      record.operation == ROCPROFILER_CODE_OBJECT_LOAD) {
+    if (record.phase == ROCPROFILER_CALLBACK_PHASE_UNLOAD) {
+      // flush the buffer to ensure that any lookups for the client kernel names
+      // for the code object are completed
+      auto flush_status = rocprofiler_flush_buffer(function->client_buffer);
+      if (flush_status != ROCPROFILER_STATUS_ERROR_BUFFER_BUSY)
+        DFTRACER_LOG_ERROR(
+            "HIPFunction::tool_code_object_callback flush failed status: %d",
+            flush_status);
+    }
+  } else if (record.kind == ROCPROFILER_CALLBACK_TRACING_CODE_OBJECT &&
+             record.operation ==
+                 ROCPROFILER_CODE_OBJECT_DEVICE_KERNEL_SYMBOL_REGISTER) {
+    auto* data = static_cast<kernel_symbol_data_t*>(record.payload);
+    if (record.phase == ROCPROFILER_CALLBACK_PHASE_LOAD) {
+      function->client_kernels.emplace(data->kernel_id, *data);
+    } else if (record.phase == ROCPROFILER_CALLBACK_PHASE_UNLOAD) {
+      function->client_kernels.erase(data->kernel_id);
+    }
+  }
+
+  (void)user_data;
+  (void)callback_data;
 }
 
 void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
@@ -80,7 +115,6 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
   DFTRACER_LOG_DEBUG("HIPFunction::tool_tracing_callback", "");
   auto function = dftracer::Singleton<dftracer::HIPFunction>::get_instance();
   auto client_name_info = function->client_name_info;
-  auto client_kernels = function->client_kernels;
   assert(user_data != nullptr);
   assert(drop_count == 0 && "drop count should be zero for lossless policy");
 
@@ -129,6 +163,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
                                  record->correlation_id.external.value);
       metadata->insert_or_assign("kind", record->kind);
       metadata->insert_or_assign("operation", record->operation);
+      metadata->insert_or_assign("tid", record->thread_id);
 
       std::string event_name =
           std::string(client_name_info[record->kind][record->operation]);
@@ -137,7 +172,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       function->logger->log(
           event_name.c_str(), kind_name.c_str(),
           function->transform_timestamp(record->start_timestamp),
-          function->transform_time(record->end_timestamp -
+          function->transform_time(record->end_timestamp,
                                    record->start_timestamp),
           metadata);
       function->logger->exit_event();
@@ -155,6 +190,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
                                  record->correlation_id.external.value);
       metadata->insert_or_assign("kind", record->kind);
       metadata->insert_or_assign("operation", record->operation);
+      metadata->insert_or_assign("tid", record->thread_id);
 
       std::string event_name =
           std::string(client_name_info[record->kind][record->operation]);
@@ -162,7 +198,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       function->logger->log(
           event_name.c_str(), kind_name.c_str(),
           function->transform_timestamp(record->start_timestamp),
-          function->transform_time(record->end_timestamp -
+          function->transform_time(record->end_timestamp,
                                    record->start_timestamp),
           metadata);
       function->logger->exit_event();
@@ -174,42 +210,27 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
               header->payload);
 
       // Create metadata for kernel dispatch
-      auto metadata = new std::unordered_map<std::string, std::any>();
-      metadata->insert_or_assign("context", context.handle);
-      metadata->insert_or_assign("buffer_id", buffer_id.handle);
-      metadata->insert_or_assign("extern_cid",
-                                 record->correlation_id.external.value);
-      metadata->insert_or_assign("kind", record->kind);
-      metadata->insert_or_assign("operation", record->operation);
-      metadata->insert_or_assign("agent_id",
-                                 record->dispatch_info.agent_id.handle);
-      metadata->insert_or_assign("queue_id",
-                                 record->dispatch_info.queue_id.handle);
-      metadata->insert_or_assign("kernel_id", record->dispatch_info.kernel_id);
-      metadata->insert_or_assign("private_segment_size",
-                                 record->dispatch_info.private_segment_size);
-      metadata->insert_or_assign("group_segment_size",
-                                 record->dispatch_info.group_segment_size);
-      metadata->insert_or_assign("workgroup_size_x",
-                                 record->dispatch_info.workgroup_size.x);
-      metadata->insert_or_assign("workgroup_size_y",
-                                 record->dispatch_info.workgroup_size.y);
-      metadata->insert_or_assign("workgroup_size_z",
-                                 record->dispatch_info.workgroup_size.z);
-      metadata->insert_or_assign("grid_size_x",
-                                 record->dispatch_info.grid_size.x);
-      metadata->insert_or_assign("grid_size_y",
-                                 record->dispatch_info.grid_size.y);
-      metadata->insert_or_assign("grid_size_z",
-                                 record->dispatch_info.grid_size.z);
 
+      auto metadata = new std::unordered_map<std::string, std::any>();
+      metadata->insert_or_assign("tid", record->thread_id);
+      metadata->insert_or_assign("correlation_id",
+                                 record->correlation_id.external.value);
+      // Instead of long names
       std::string event_name = std::string(
-          client_kernels.at(record->dispatch_info.kernel_id).kernel_name);
+          function->client_kernels.at(record->dispatch_info.kernel_id)
+              .kernel_name);
+
+      // Resize to max length
+      if (event_name.length() > MAX_EVENT_NAME_LENGTH) {
+        event_name = event_name.substr(0, MAX_EVENT_NAME_LENGTH);
+      }
+      // Prepend with string of kernel_id
+      event_name = std::to_string(record->dispatch_info.kernel_id) + event_name;
       function->logger->enter_event();
       function->logger->log(
           event_name.c_str(), kind_name.c_str(),
           function->transform_timestamp(record->start_timestamp),
-          function->transform_time(record->end_timestamp -
+          function->transform_time(record->end_timestamp,
                                    record->start_timestamp),
           metadata);
       function->logger->exit_event();
@@ -230,6 +251,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       metadata->insert_or_assign("operation", record->operation);
       metadata->insert_or_assign("src_agent_id", record->src_agent_id.handle);
       metadata->insert_or_assign("dst_agent_id", record->dst_agent_id.handle);
+      metadata->insert_or_assign("tid", record->thread_id);
 
       std::string event_name =
           std::string(client_name_info.at(record->kind, record->operation));
@@ -237,7 +259,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       function->logger->log(
           event_name.c_str(), kind_name.c_str(),
           function->transform_timestamp(record->start_timestamp),
-          function->transform_time(record->end_timestamp -
+          function->transform_time(record->end_timestamp,
                                    record->start_timestamp),
           metadata);
       function->logger->exit_event();
@@ -306,7 +328,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       function->logger->log(
           event_name.c_str(), kind_name.c_str(),
           function->transform_timestamp(record->start_timestamp),
-          function->transform_time(record->end_timestamp -
+          function->transform_time(record->end_timestamp,
                                    record->start_timestamp),
           metadata);
       function->logger->exit_event();
@@ -328,17 +350,37 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       metadata->insert_or_assign("agent_id", record->agent_id.handle);
       metadata->insert_or_assign("queue_id", record->queue_id.handle);
       metadata->insert_or_assign("flags", record->flags);
+      metadata->insert_or_assign("tid", record->thread_id);
       std::string event_name =
           std::string(client_name_info.at(record->kind, record->operation));
       function->logger->enter_event();
       function->logger->log(
           event_name.c_str(), kind_name.c_str(),
           function->transform_timestamp(record->start_timestamp),
-          function->transform_time(record->end_timestamp -
+          function->transform_time(record->end_timestamp,
                                    record->start_timestamp),
           metadata);
       function->logger->exit_event();
+    } else if (header->kind == ROCPROFILER_BUFFER_TRACING_RCCL_API) {
+      auto* record = static_cast<rocprofiler_buffer_tracing_rccl_api_record_t*>(
+          header->payload);
 
+      auto metadata = new std::unordered_map<std::string, std::any>();
+      metadata->insert_or_assign("operation", record->operation);
+      metadata->insert_or_assign("tid", record->thread_id);
+      metadata->insert_or_assign("correlation_id",
+                                 record->correlation_id.external.value);
+
+      std::string event_name =
+          std::string(client_name_info.at(record->kind, record->operation));
+      function->logger->enter_event();
+      function->logger->log(
+          event_name.c_str(), kind_name.c_str(),
+          function->transform_timestamp(record->start_timestamp),
+          function->transform_time(record->end_timestamp,
+                                   record->start_timestamp),
+          metadata);
+      function->logger->exit_event();
     } else {
       continue;  // Skip this record if category or kind is unknown
     }
@@ -371,6 +413,14 @@ int HIPFunction::tool_init(rocprofiler_client_finalize_t fini_func,
                        status);
     return -1;
   }
+
+  auto code_object_ops = std::vector<rocprofiler_tracing_operation_t>{
+      ROCPROFILER_CODE_OBJECT_DEVICE_KERNEL_SYMBOL_REGISTER};
+
+  rocprofiler_configure_callback_tracing_service(
+      function->client_ctx, ROCPROFILER_CALLBACK_TRACING_CODE_OBJECT,
+      code_object_ops.data(), code_object_ops.size(), tool_code_object_callback,
+      nullptr);
   constexpr auto buffer_size_bytes = 4096;
   constexpr auto buffer_watermark_bytes =
       buffer_size_bytes - (buffer_size_bytes / 8);
@@ -384,8 +434,9 @@ int HIPFunction::tool_init(rocprofiler_client_finalize_t fini_func,
   // Disabled HSA APIs
   // for (auto itr : {ROCPROFILER_BUFFER_TRACING_HSA_CORE_API,
   //                  ROCPROFILER_BUFFER_TRACING_HSA_AMD_EXT_API}) {
-  //   rocprofiler_configure_buffer_tracing_service(client_ctx, itr, nullptr, 0,
-  //                                                client_buffer);
+  //   rocprofiler_configure_buffer_tracing_service(function->client_ctx, itr,
+  //   nullptr, 0,
+  //                                                function->client_buffer);
   // }
 
   rocprofiler_configure_buffer_tracing_service(
@@ -408,6 +459,11 @@ int HIPFunction::tool_init(rocprofiler_client_finalize_t fini_func,
   rocprofiler_configure_buffer_tracing_service(
       function->client_ctx, ROCPROFILER_BUFFER_TRACING_SCRATCH_MEMORY, nullptr,
       0, function->client_buffer);
+
+  // RCCL tracing
+  rocprofiler_configure_buffer_tracing_service(
+      function->client_ctx, ROCPROFILER_BUFFER_TRACING_RCCL_API, nullptr, 0,
+      function->client_buffer);
 
   auto client_thread = rocprofiler_callback_thread_t{};
   rocprofiler_create_callback_thread(&client_thread);

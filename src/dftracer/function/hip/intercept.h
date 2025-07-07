@@ -4,7 +4,6 @@
 #define DFTRACER_HIP_INTERCEPT_H
 
 #include <dftracer/dftracer_config.hpp>
-#define DFTRACER_HIP_TRACING_ENABLE 1
 #ifdef DFTRACER_HIP_TRACING_ENABLE
 
 #include <dftracer/core/logging.h>
@@ -38,7 +37,8 @@ class HIPFunction : public dftracer::GenericFunction {
 
   TimeResolution time_diff;
   TimeResolution transform_timestamp(rocprofiler_timestamp_t timestamp);
-  TimeResolution transform_time(rocprofiler_timestamp_t timestamp);
+  TimeResolution transform_time(rocprofiler_timestamp_t end_time,
+                                rocprofiler_timestamp_t start_time);
 
  public:
   HIPFunction() : dftracer::GenericFunction() {
@@ -47,6 +47,9 @@ class HIPFunction : public dftracer::GenericFunction {
     time_diff = 0;
   }
 
+  static void tool_code_object_callback(
+      rocprofiler_callback_tracing_record_t record,
+      rocprofiler_user_data_t* user_data, void* callback_data);
   static void tool_tracing_callback(rocprofiler_context_id_t context,
                                     rocprofiler_buffer_id_t buffer_id,
                                     rocprofiler_record_header_t** headers,

@@ -295,9 +295,21 @@ class DFTLogger {
                   TimeResolution start_time, TimeResolution duration,
                   std::unordered_map<std::string, std::any> *metadata) {
     DFTRACER_LOG_DEBUG("DFTLogger.log", "");
+
+    // Get thread id and process id from metadata if it exists
     ThreadID tid = 0;
     if (dftracer_tid) {
       tid = df_gettid();
+#ifndef DFTRACER_MPI_ENABLE
+      // WARN: Not tested with MPI enabled
+      if (metadata != nullptr) {
+        auto iter = metadata->find("tid");
+        if (iter != metadata->end()) {
+          tid = std::any_cast<ThreadID>(iter->second);
+          metadata->erase(iter);
+        }
+      }
+#endif
     }
     int local_index;
     if (!include_metadata) {
@@ -313,10 +325,10 @@ class DFTLogger {
       if (include_metadata) {
         int current_index = get_current();
         this->writer->log(current_index, event_name, category, start_time,
-                          duration, metadata, this->process_id, tid);
+                          duration, metadata, process_id, tid);
       } else {
         this->writer->log(local_index, event_name, category, start_time,
-                          duration, metadata, this->process_id, tid);
+                          duration, metadata, process_id, tid);
       }
 
       has_entry = true;

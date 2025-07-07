@@ -6,7 +6,7 @@
 #include <dftracer/function/hip/intercept.h>
 
 // TODO: Figure out why I have to manually enable it
-#define DFTRACER_HIP_TRACING_ENABLE 1
+// #define DFTRACER_HIP_TRACING_ENABLE 1
 
 template <>
 std::shared_ptr<dftracer::DFTracerCore>
