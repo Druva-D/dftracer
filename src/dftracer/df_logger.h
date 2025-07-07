@@ -325,10 +325,10 @@ class DFTLogger {
       if (include_metadata) {
         int current_index = get_current();
         this->writer->log(current_index, event_name, category, start_time,
-                          duration, metadata, process_id, tid);
+                          duration, metadata, this->process_id, tid);
       } else {
         this->writer->log(local_index, event_name, category, start_time,
-                          duration, metadata, process_id, tid);
+                          duration, metadata, this->process_id, tid);
       }
 
       has_entry = true;
