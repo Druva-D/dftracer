@@ -6,8 +6,6 @@
 #define DFTRACER_FUNCTION_H
 /* Config Header */
 #include <dftracer/dftracer_config.hpp>
-#define DFTRACER_FTRACING_ENABLE 1
-// TODO: Figure out why FTRACING still isn't working
 #ifdef DFTRACER_FTRACING_ENABLE
 /* Internal Header */
 #include <dftracer/core/logging.h>
@@ -40,7 +38,6 @@ class Function {
   std::shared_ptr<DFTLogger> logger;
   Function() {
     DFTRACER_LOG_DEBUG("Function class intercepted", "");
-    printf("Function class initialized\n");
     logger = DFT_LOGGER_INIT();
   }
 
