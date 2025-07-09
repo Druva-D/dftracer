@@ -1,5 +1,4 @@
 #include <dftracer/finstrument/functions.h>
-#define DFTRACER_FTRACING_ENABLE 1
 #ifdef DFTRACER_FTRACING_ENABLE
 #include <link.h>
 std::shared_ptr<dftracer::Function> dftracer::Function::instance = nullptr;
