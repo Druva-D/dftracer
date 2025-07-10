@@ -36,7 +36,9 @@ dft_tuo_test:
   extends: .tuo 
   stage: test 
   script: 
-   - bash .gitlab/scripts/run_dft_hip_test.sh
+    - source .gitlab/scripts/variables.sh
+    - source .gitlab/scripts/pre.sh
+    - bash .gitlab/scripts/run_dft_hip_test.sh
 
 # dlio_corona_build:
 #   extends: .corona
@@ -71,6 +73,6 @@ dft_tuo_test:
 #       pipeline_variables: true
 
 include:
-  - project: 'lc-templates/id_tokens'
-    file: 'id_tokens.yml'
+  # - project: 'lc-templates/id_tokens'
+  #   file: 'id_tokens.yml'
   - local: '.gitlab/scripts/common.yml'

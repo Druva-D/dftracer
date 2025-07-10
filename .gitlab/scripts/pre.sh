@@ -68,7 +68,11 @@ scheduler() {
     esac
 }
 
-pip install -r .gitlab/scripts/hip_requirements.txt
+# Check if torch isn't installed
+if ! python -c "import torch" &> /dev/null; then
+    echo "Torch is not installed. Installing..."
+    pip install -r .gitlab/scripts/hip_requirements.txt
+fi
 
 export LD_LIBRARY_PATH=$CUSTOM_CI_ENV_DIR/$ENV_NAME/lib/python3.11/site-packages/torch/lib:$LD_LIBRARY_PATH
 

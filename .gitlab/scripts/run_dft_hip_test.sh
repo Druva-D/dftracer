@@ -1,4 +1,4 @@
-
+#!/bin/bash
 
 export DFTRACER_ENABLE=1
 cd $CUSTOM_CI_BUILDS_DIR
@@ -12,4 +12,7 @@ cd dftracer
 
 git checkout $CI_COMMIT_REF_NAME
 
-SCHEDULER_CMD 1 1 python3 tests/py/hip_test.py
+export QUEUE=pdebug
+export WALLTIME=1h
+
+flux submit -N1 --ntasks-per-node=1 -p $QUEUE -t $WALLTIME --exclusive python3 tests/py/hip_test.py
