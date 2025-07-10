@@ -15,4 +15,4 @@ git checkout $CI_COMMIT_REF_NAME
 export QUEUE=pdebug
 export WALLTIME=1h
 
-flux submit -N1 -q $QUEUE -t $WALLTIME --exclusive python3 test/py/hip_test.py
+flux run -N1 -q $QUEUE -t $WALLTIME --exclusive python3 test/py/hip_test.py
