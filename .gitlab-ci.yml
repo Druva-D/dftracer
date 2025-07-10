@@ -24,37 +24,51 @@ stages:
 - generate
 - test
 
-dlio_corona_build:
-  extends: .corona
-  stage: build
-  script:
+dft_tuo_build:
+  extends: .tuo 
+  stage: build 
+  scripts: 
     - source .gitlab/scripts/variables.sh
     - source .gitlab/scripts/pre.sh
-    - if [[ "$DEBUG" != "1" ]]; then source .gitlab/scripts/build.sh; else echo "Not building from scratch as running in Debug mode."; fi
+    - if [[ "$DEBUG" != "1" ]]; then source .gitlab/scripts/build_dft.sh; else echo "Not building from scratch as running in Debug mode."; fi
 
-dlio_corona_generate:
-  extends: .corona
-  stage: generate
-  script: 
-    - source .gitlab/scripts/variables.sh
-    - source .gitlab/scripts/pre.sh
-    - if [ -f .gitlab/scripts/run_dlio_workload_test_ci.yaml ]; then rm .gitlab/scripts/run_dlio_workload_test_ci.yaml; fi
-    - python .gitlab/scripts/generate_dlio_job.py --output .gitlab/scripts/run_dlio_workload_test_ci.yaml --log-level INFO
-    - if [ ! -f .gitlab/scripts/run_dlio_workload_test_ci.yaml ]; then echo 'File not generated!'; exit 1; fi
-    - cat .gitlab/scripts/run_dlio_workload_test_ci.yaml
-  artifacts:
-    paths:
-      - .gitlab/scripts/run_dlio_workload_test_ci.yaml
+dft_tuo_test: 
+  extends: .tuo 
+  stage: test 
+  scripts: 
+   - bash .gitlab/scripts/run_dft_hip_test.sh
 
-dlio_corona_test:
-  stage: test
-  trigger:
-    include:
-      - artifact: .gitlab/scripts/run_dlio_workload_test_ci.yaml
-        job: dlio_corona_generate
-    strategy: depend
-    forward:
-      pipeline_variables: true
+# dlio_corona_build:
+#   extends: .corona
+#   stage: build
+#   script:
+#     - source .gitlab/scripts/variables.sh
+#     - source .gitlab/scripts/pre.sh
+#     - if [[ "$DEBUG" != "1" ]]; then source .gitlab/scripts/build.sh; else echo "Not building from scratch as running in Debug mode."; fi
+
+# dlio_corona_generate:
+#   extends: .corona
+#   stage: generate
+#   script: 
+#     - source .gitlab/scripts/variables.sh
+#     - source .gitlab/scripts/pre.sh
+#     - if [ -f .gitlab/scripts/run_dlio_workload_test_ci.yaml ]; then rm .gitlab/scripts/run_dlio_workload_test_ci.yaml; fi
+#     - python .gitlab/scripts/generate_dlio_job.py --output .gitlab/scripts/run_dlio_workload_test_ci.yaml --log-level INFO
+#     - if [ ! -f .gitlab/scripts/run_dlio_workload_test_ci.yaml ]; then echo 'File not generated!'; exit 1; fi
+#     - cat .gitlab/scripts/run_dlio_workload_test_ci.yaml
+#   artifacts:
+#     paths:
+#       - .gitlab/scripts/run_dlio_workload_test_ci.yaml
+
+# dlio_corona_test:
+#   stage: test
+#   trigger:
+#     include:
+#       - artifact: .gitlab/scripts/run_dlio_workload_test_ci.yaml
+#         job: dlio_corona_generate
+#     strategy: depend
+#     forward:
+#       pipeline_variables: true
 
 include:
   - project: 'lc-templates/id_tokens'
