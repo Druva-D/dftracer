@@ -15,4 +15,6 @@ git checkout $CI_COMMIT_REF_NAME
 export QUEUE=pdebug
 export WALLTIME=1h
 
+source $CUSTOM_CI_ENV_DIR/$ENV_NAME/bin/activate
+
 flux run -N1 -q $QUEUE -t $WALLTIME --exclusive python3 test/py/hip_test.py
