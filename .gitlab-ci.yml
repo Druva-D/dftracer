@@ -27,7 +27,7 @@ stages:
 dft_tuo_build:
   extends: .tuo 
   stage: build 
-  scripts: 
+  script: 
     - source .gitlab/scripts/variables.sh
     - source .gitlab/scripts/pre.sh
     - if [[ "$DEBUG" != "1" ]]; then source .gitlab/scripts/build_dft.sh; else echo "Not building from scratch as running in Debug mode."; fi
@@ -35,7 +35,7 @@ dft_tuo_build:
 dft_tuo_test: 
   extends: .tuo 
   stage: test 
-  scripts: 
+  script: 
    - bash .gitlab/scripts/run_dft_hip_test.sh
 
 # dlio_corona_build:
