@@ -27,6 +27,8 @@ namespace dftracer {
 using kernel_symbol_data_t =
     rocprofiler_callback_tracing_code_object_kernel_symbol_register_data_t;
 
+// Used to trace AMD GPU APIS - HIP, HSA, RCCL, and the memory APIS - counters
+// not implemented
 class HIPFunction : public dftracer::GenericFunction {
  private:
   rocprofiler::sdk::buffer_name_info client_name_info;

@@ -107,6 +107,11 @@ void HIPFunction::tool_code_object_callback(
   (void)callback_data;
 }
 
+// This is the callback that is called with multiple recorded tracing events
+// The events are inside the headers, all the different APIS funnel to the same
+// buffer, due to the definition in the tool_init function Each record
+// corresponds to a specific API call - Disable APIS in tool_init, do
+// not edit this to disable APIS
 void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
                                         rocprofiler_buffer_id_t buffer_id,
                                         rocprofiler_record_header_t** headers,
@@ -119,14 +124,8 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
   assert(drop_count == 0 && "drop count should be zero for lossless policy");
 
   if (num_headers == 0)
-    // throw std::runtime_error{
-    //     "rocprofiler invoked a buffer callback with no headers. this should
-    //     " "never happen"};
     return;  // No headers to process, just return
   else if (headers == nullptr)
-    // throw std::runtime_error{
-    //     "rocprofiler invoked a buffer callback with a null pointer to the "
-    //     "array of headers. this should never happen"};
     return;  // No headers to process, just return
 
   for (size_t i = 0; i < num_headers; ++i) {
@@ -139,11 +138,7 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
       rocprofiler_query_buffer_tracing_kind_name(_kind, &_name, nullptr);
 
       if (_name) {
-        // static size_t len = 15;
-
         kind_name = std::string{_name};
-        // len = std::max(len, kind_name.length());
-        // kind_name.resize(len, ' ');
       }
     }
 
@@ -210,7 +205,6 @@ void HIPFunction::tool_tracing_callback(rocprofiler_context_id_t context,
               header->payload);
 
       // Create metadata for kernel dispatch
-
       auto metadata = new std::unordered_map<std::string, std::any>();
       metadata->insert_or_assign("tid", record->thread_id);
       metadata->insert_or_assign("correlation_id",
@@ -399,6 +393,11 @@ void HIPFunction::thread_postcreate(rocprofiler_runtime_library_t lib,
                      "lib=" + std::to_string(lib));
 }
 
+// Tool initialization
+// Attach callbacks to rocprofiler APIS
+// callbacks are populated in buffer and processeed in tool_tracing_callback
+// Disable APIS by commenting out the corresponding lines
+// TODO: Enable/Disable specific APIs using ENV variables
 int HIPFunction::tool_init(rocprofiler_client_finalize_t fini_func,
                            void* tool_data) {
   DFTRACER_LOG_DEBUG("HIP Intercept class initialized", "");
@@ -451,7 +450,6 @@ int HIPFunction::tool_init(rocprofiler_client_finalize_t fini_func,
       function->client_ctx, ROCPROFILER_BUFFER_TRACING_MEMORY_COPY, nullptr, 0,
       function->client_buffer);
 
-  // May have incompatible kernel so only emit a warning here
   rocprofiler_configure_buffer_tracing_service(
       function->client_ctx, ROCPROFILER_BUFFER_TRACING_PAGE_MIGRATION, nullptr,
       0, function->client_buffer);
