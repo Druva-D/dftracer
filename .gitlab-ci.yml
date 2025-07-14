@@ -73,6 +73,6 @@ dft_tuo_test:
 #       pipeline_variables: true
 
 include:
-  # - project: 'lc-templates/id_tokens'
-  #   file: 'id_tokens.yml'
+  - project: 'lc-templates/id_tokens'
+    file: 'id_tokens.yml'
   - local: '.gitlab/scripts/common.yml'
