@@ -6,8 +6,8 @@ workflow:
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  CUSTOM_CI_BUILDS_DIR: "/usr/workspace/iopp/gitlab-runner-builds"
-  CUSTOM_CI_ENV_DIR: "/usr/workspace/iopp/gitlab-runner-envs"
+  CUSTOM_CI_BUILDS_DIR: "/usr/workspace/iopp/gi-builds"
+  CUSTOM_CI_ENV_DIR: "/usr/workspace/iopp/gi-envs"
   # Repository information
   DLIO_BENCHMARK_REPO: https://github.com/argonne-lcf/dlio_benchmark.git
   DLIO_BENCHMARK_TAG: feature/optional-dftracer
