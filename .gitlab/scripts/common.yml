@@ -29,7 +29,7 @@
   extends: .lc 
   tags: 
     - shell 
-    - tuo
+    - tuolumne
   variables: 
     PYTHON_MODULE: cray-python/3.11.7
     MPI_MODULE: cray-mpich/8.1.25 # OpenMPI is a popular open-source MPI implementation
