@@ -29,10 +29,8 @@ fi
 
 echo "Installing DFTracer" | tee -a "$LOG_FILE"
 echo "Command: pip install --no-cache-dir --force-reinstall git+${DFTRACER_REPO}@${CI_COMMIT_REF_NAME}" | tee -a "$LOG_FILE"
-set -x
 export DFTRACER_ENABLE_HIP_TRACING=ON
-pip install --no-cache-dir --force-reinstall git+${DFTRACER_REPO}@${CI_COMMIT_REF_NAME} >>"$LOG_FILE" 2>&1
-set +x
+pip install --no-cache-dir --force-reinstall --verbose git+${DFTRACER_REPO}@${CI_COMMIT_REF_NAME} >>"$LOG_FILE" 2>&1
 unset DFTRACER_ENABLE_HIP_TRACING
 if [ $? -ne 0 ]; then
     echo "Failed to install DFTracer. Check the log file: $LOG_FILE" | tee -a "$LOG_FILE"
