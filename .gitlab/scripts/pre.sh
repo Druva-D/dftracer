@@ -7,8 +7,8 @@ set -x
 echo "Running pre.sh on $(hostname) by $USER on $PWD"
 
 # Load the required modules for Python, MPI, and GCC
-echo "Loading modules: Python ($PYTHON_MODULE), MPI ($MPI_MODULE), and GCC ($GCC_MODULE)"
-module load $PYTHON_MODULE $MPI_MODULE $GCC_MODULE
+echo "Loading modules: Python ($PYTHON_MODULE), MPI ($MPI_MODULE), and GCC ($GCC_MODULE) and ROCM ($ROCM_MODULE)"
+module load $PYTHON_MODULE $MPI_MODULE $GCC_MODULE $ROCM_MODULE
 if [ $? -ne 0 ]; then
     echo "Error: Failed to load modules."
     exit 1
@@ -71,6 +71,8 @@ scheduler() {
 # Check if torch isn't installed
 if ! python -c "import torch" &> /dev/null; then
     echo "Torch is not installed. Installing..."
+    echo "Python source"
+    which python
     pip install -r .gitlab/scripts/hip_requirements.txt
 fi
 

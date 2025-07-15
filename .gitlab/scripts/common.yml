@@ -34,6 +34,7 @@
     PYTHON_MODULE: cray-python/3.11.7
     MPI_MODULE: cray-mpich/8.1.25 # OpenMPI is a popular open-source MPI implementation
     GCC_MODULE: gcc/12.2.0
+    ROCM_MODULE: rocm/6.3.1
     DATA_PATH: "/p/lustre5/iopp/gitlab-runner-data/"
     LOG_STORE_DIR: "/p/lustre5/iopp/dftracer-traces-lfs" # 'iopp' refers to a specific directory structure
     CUSTOM_CI_OUTPUT_DIR: "/p/lustre5/iopp/gitlab-runner-outputs"
