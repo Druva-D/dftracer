@@ -283,7 +283,7 @@ dynamically change metadata. These updates apply to the entire subtree of that e
         loss = model(x)
         return loss
 
-    for epoch in ai.pipeline.epoch.iter(num_epoch):
+    for epoch in ai.pipeline.epoch.iter(range(num_epoch)):
         for step, batch in ai.dataloader.fetch.iter(enumerate(dataloader)):
             # Update metadata for the current context
             ai.compute.forward.update(epoch=epoch, step=step)
@@ -367,8 +367,69 @@ Example:
         loss = model(x)
         return loss
 
-    for epoch in ai.pipeline.epoch.iter(num_epoch):
+    for epoch in ai.pipeline.epoch.iter(range(num_epoch)):
         for step, batch in ai.dataloader.fetch.iter(enumerate(dataloader)):
             # Add context to the forward trace
             ai.compute.forward.update(epoch=epoch, step=step)
             forward(model, batch)
+
+
+Hook/Checkpoint Style
+****************************************
+
+Sometimes you need to attach profilers to hooks (e.g., TensorFlow SessionHook) 
+where you can't use decorators or context managers directly.
+
+For these cases, you can manually call the profiler methods:
+
+.. code-block:: python
+
+    class DFTracerProfilingHook(tf.train.SessionRunHook):
+        def begin(self):
+            self._global_step_tensor = training_util._get_or_create_global_step_read()
+            if self._global_step_tensor is None:
+                raise RuntimeError("Global step should be created to use ProfilerHook.")
+            ai.pipeline.epoch.start()
+
+        def end(self, session):
+            ai.pipeline.epoch.stop()
+        
+        def before_run(self, run_context):
+            global_step = run_context.session.run(self._global_step_tensor)
+            ai.update(step=global_step)
+            ai.compute.start()
+
+        def after_run(self, run_context, run_values):
+            ai.compute.stop()
+
+Derivation
+****************************************
+
+Since sometimes our logging needs to be more dynamic, you can derive new profilers from existing ones. 
+This is useful when you want to create a specialized profiler with the same context as an existing one.
+
+Example:
+
+.. code-block:: python
+
+    class Dataset:
+        def __getitem__(self, idx: int):
+            data = ...
+            with ai.data.preprocess:
+                # do something with data
+                ...
+            return data
+
+    # this will become name="preprocess.collate" with cat="data"
+    @ai.data.preprocess.derive(name="collate")
+    def collate(batch):
+        # Collate the batch
+        return batch
+    
+    # OR (context-manager style)
+
+    profiler_collate = ai.data.preprocess.derive(name="collate")
+
+    def collate_fn(batch):
+        with profiler_collate:
+            return collate(batch)
