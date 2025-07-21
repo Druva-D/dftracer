@@ -3,7 +3,11 @@
 #ifndef DFTRACER_HIP_INTERCEPT_H
 #define DFTRACER_HIP_INTERCEPT_H
 
+#ifdef DFTRACER_DEBUG
+#include <dftracer/dftracer_config_dbg.hpp>
+#else
 #include <dftracer/dftracer_config.hpp>
+#endif
 #ifdef DFTRACER_HIP_TRACING_ENABLE
 
 #include <dftracer/core/logging.h>
