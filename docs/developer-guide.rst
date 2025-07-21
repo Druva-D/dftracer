@@ -64,6 +64,48 @@ For updating the docs we need to install additional dependency :code:`Sphinx`
 
    cd <dftracer>/docs
    make html
-
+   
                 
 Then open :code:`_build/html/index.html`
+
+
+
+
+Managing Configuration
+==============
+
+Importing config variables in your code is done by including the header file:
+
+.. code-block:: cpp
+   #ifdef DFTRACER_DEBUG
+   #include <dftracer/dftracer_config_dbg.hpp>
+   #else
+   #include <dftracer/dftracer_config.hpp>
+   #endif
+   #ifdef DFTRACER_MY_OPTION_ENABLE 
+   // Define MY_OPTION dependent code here
+   #endif
+
+Enabling configuration options is done in the :code:`cmake/dftracer_config.hpp` and
+the :code:`cmake/dftracer_config_dbg.hpp` files. These files contain the definitions
+of configuration options that can be used to control the behavior of the
+:code:`dftracer` library. The debug version of the configuration file is used
+when the :code:`DFTRACER_DEBUG` macro is defined, allowing for different
+configurations in debug builds compared to release builds.
+
+.. code-block:: cpp
+   #cmakedefine DFTRACER_MY_OPTION_ENABLE 1
+
+Defining the configuration options is done in the :code:`CMakeLists.txt` file
+
+.. code-block:: cmake
+   option(DFTRACER_ENABLE_MY_OPTION "Enable MY_OPTION" ON)
+   if (DFTRACER_ENABLE_MY_OPTION)
+       set(DFTRACER_MY_OPTION_ENABLE 1)
+   endif()
+
+The code can build with the configuration options by setting the
+:code:`DFTRACER_ENABLE_MY_OPTION` option in the CMake configuration step
+
+.. code-block:: bash
+   cmake -DDFTRACER_ENABLE_MY_OPTION=ON <other options> <path to dftracer source>
