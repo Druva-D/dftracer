@@ -125,6 +125,12 @@ if (DFTRACER_ENABLE_HIP_TRACING)
     set(DFTRACER_HIP_TRACING_ENABLE 1)
 endif()
 
+# Options
+option (DFTRACER_ENABLE_CUDA_TRACING "Enable CUDA Tracing" OFF)
+if (DFTRACER_ENABLE_CUDA_TRACING)
+    set(DFTRACER_CUDA_TRACING_ENABLE 1)
+endif()
+
 option (DFTRACER_ENABLE_MPI "Enable MPI" OFF)
 if (DFTRACER_ENABLE_MPI)
     set(DFTRACER_MPI_ENABLE 1)
@@ -264,6 +270,13 @@ if (DFTRACER_ENABLE_HIP_TRACING)
   set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${HIP_TRACING_LIBRARIES})
 endif()
 
+if (DFTRACER_ENABLE_CUDA_TRACING)
+  find_package(CUDAToolkit REQUIRED)
+  set(CUPTI_TRACING_LIBRARIES CUDA::cupti)
+  set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${CUPTI_TRACING_LIBRARIES})
+endif()
+
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(DFTRACER_PRELOAD_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/dftracer_preload.cpp)
@@ -273,6 +286,7 @@ set(DFTRACER_CORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/brahma/posix.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/brahma/stdio.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/finstrument/functions.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/function/hip/intercept.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/function/cuda/intercept.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/writer/chrome_writer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/utils/posix_internal.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/dftracer.cpp
@@ -292,6 +306,7 @@ set(DFTRACER_CORE_PRIVATE_INCLUDE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/finstrument/functions.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/function/generic_function.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/function/hip/intercept.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/function/cuda/intercept.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/brahma/posix.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/brahma/stdio.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/core/dftracer_main.h
@@ -677,6 +692,7 @@ append_str_tf(_str
   DFTRACER_LIBDIR_AS_LIB
   DFTRACER_ENABLE_FTRACING
   DFTRACER_ENABLE_HIP_TRACING
+  DFTRACER_ENABLE_CUDA_TRACING
   DFTRACER_ENABLE_MPI
   DFTRACER_DISABLE_HWLOC
   DFTRACER_USE_CLANG_LIBCXX

@@ -18,10 +18,9 @@ PLAT_TO_CMAKE = {
 }
 
 
-
-
 def myversion_func(version: ScmVersion) -> str:
     from setuptools_scm.version import only_version
+
     return version.format_next_version(only_version, fmt="{tag}.dev{distance}")
 
 
@@ -78,12 +77,16 @@ class CMakeBuild(build_ext):
 
         # Using this requires trailing slash for auto-detection & inclusion of
         # auxiliary "native" libs
-        build_type = os.environ.get("DFTRACER_BUILD_TYPE", "Release") # Setting this to release causes memory issues with GCC-13.
+        build_type = os.environ.get(
+            "DFTRACER_BUILD_TYPE", "Release"
+        )  # Setting this to release causes memory issues with GCC-13.
         cmake_args += [f"-DCMAKE_BUILD_TYPE={build_type}"]
         enable_ftracing = os.environ.get("DFTRACER_ENABLE_FTRACING", "OFF")
         cmake_args += [f"-DDFTRACER_ENABLE_FTRACING={enable_ftracing}"]
         enable_hip_tracing = os.environ.get("DFTRACER_ENABLE_HIP_TRACING", "OFF")
         cmake_args += [f"-DDFTRACER_ENABLE_HIP_TRACING={enable_hip_tracing}"]
+        enable_hip_tracing = os.environ.get("DFTRACER_ENABLE_CUDA_TRACING", "OFF")
+        cmake_args += [f"-DDFTRACER_ENABLE_CUDA_TRACING={enable_hip_tracing}"]
         enable_mpi = os.environ.get("DFTRACER_ENABLE_MPI", "OFF")
         cmake_args += [f"-DDFTRACER_ENABLE_MPI={enable_mpi}"]
         disable_hwloc = os.environ.get("DFTRACER_DISABLE_HWLOC", "ON")

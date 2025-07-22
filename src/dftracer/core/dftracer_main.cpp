@@ -3,7 +3,10 @@
 //
 #include <dftracer/core/dftracer_main.h>
 #include <dftracer/finstrument/functions.h>
+#include <dftracer/function/cuda/intercept.h>
 #include <dftracer/function/hip/intercept.h>
+
+#define DFTRACER_CUDA_TRACING_ENABLE 1
 
 template <>
 std::shared_ptr<dftracer::DFTracerCore>
@@ -124,6 +127,13 @@ bool dftracer::DFTracerCore::finalize() {
           dftracer::Singleton<dftracer::HIPFunction>::get_instance();
       if (hip_instance != nullptr) {
         hip_instance->finalize();
+      }
+#endif
+#ifdef DFTRACER_CUDA_TRACING_ENABLE
+      auto cuda_instance =
+          dftracer::Singleton<dftracer::CUPTIFunction>::get_instance();
+      if (cuda_instance != nullptr) {
+        cuda_instance->finalize();
       }
 #endif
       if (conf->io) {
@@ -290,6 +300,10 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
 #else
         DFTRACER_LOG_DEBUG("HIP tracing is not enabled", "");
 #endif
+#ifdef DFTRACER_CUDA_TRACING_ENABLE
+        DFTRACER_LOG_DEBUG("CUDA tracing is enabled", "");
+        dftracer::Singleton<dftracer::CUPTIFunction>::get_instance();
+#endif
       }
     } else {
 #ifdef DFTRACER_FTRACING_ENABLE
@@ -300,6 +314,13 @@ void dftracer::DFTracerCore::initialize(bool _bind, const char *_log_file,
           dftracer::Singleton<dftracer::HIPFunction>::get_instance();
       if (hip_instance != nullptr) {
         hip_instance->finalize();
+      }
+#endif
+#ifdef DFTRACER_CUDA_TRACING_ENABLE
+      auto cuda_instance =
+          dftracer::Singleton<dftracer::CUPTIFunction>::get_instance();
+      if (cuda_instance != nullptr) {
+        cuda_instance->finalize();
       }
 #endif
     }
