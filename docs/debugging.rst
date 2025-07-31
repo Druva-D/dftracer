@@ -7,9 +7,6 @@ Debugging
 Preload Mode
 ------------
 
-.. #TODO
-.. Application Level Example:
-.. **************************
 
 
 To enable debugging with the LD_PRELOAD mode, LD_PRELOAD the executable with libdftracer_preload_dbg.so at
