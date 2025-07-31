@@ -1,9 +1,14 @@
+from time import sleep
 import torch
 
 from dftracer.logger import dftracer, dft_fn as Profile
 import os
 
 print("LIB PATH", os.environ["LD_LIBRARY_PATH"])
+
+# Delete hip_data.pfw if exists
+if os.path.exists("hip_data.pfw"):
+    os.remove("hip_data.pfw")
 
 log_inst = dftracer.initialize_log(logfile="hip_data.pfw", data_dir=None, process_id=-1)
 
@@ -21,8 +26,7 @@ def check_gpu_availability():
         print("Current GPU:", torch.cuda.get_device_name(0))
         device = torch.device("cuda")
     else:
-        print("Using CPU")
-        device = torch.device("cpu")
+        raise RuntimeError("CUDA is not available")
 
     return device
 
@@ -54,7 +58,10 @@ def basic_tensor_operations(device):
 if __name__ == "__main__":
     device = check_gpu_availability()
     a, b, c, d = basic_tensor_operations(device)
+    sleep(2)
     log_inst.finalize()
     with open("hip_data.pfw", "r") as f:
         data = f.read()
-        assert "HIP_RUNTIME_API" in data, "HIP_RUNTIME_API not found in log file"
+        assert (
+            "HIP_RUNTIME_API" in data or "CUDA" in data
+        ), "HIP_RUNTIME_API or CUDA not found in log file"

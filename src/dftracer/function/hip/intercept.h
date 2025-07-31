@@ -74,8 +74,6 @@ class HIPFunction : public dftracer::GenericFunction {
 
   void initialize() override {
     DFTRACER_LOG_DEBUG("Initializing HIPFunction instance", "");
-    // TODO: DFTRACER DEBUG LOGS aren't getting printed here, reproduced in
-    // function.h as well - Druva
     rocprofiler_force_configure(&conf::roc_conf);
     rocprofiler_status_t status;
     status = rocprofiler_start_context(client_ctx);
