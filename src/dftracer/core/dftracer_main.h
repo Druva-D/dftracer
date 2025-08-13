@@ -45,6 +45,7 @@ class DFTracerCore {
                const char *log_file = nullptr, const char *data_dirs = nullptr,
                const int *process_id = nullptr);
 
+  void reinitialize();
   inline bool is_active() {
     DFTRACER_LOG_DEBUG("DFTracerCore.is_active", "");
     return conf->enable;

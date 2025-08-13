@@ -173,3 +173,38 @@ Arguments for this script are:
 3. **-v** enable verbose mode
 4. **-h** display help
 5. **-d input_directory** specify input directories. should contain .pfw or .pfw.gz files.
+
+------------------
+Sparse Git Clone
+------------------
+
+The script enables sparse git-clone of dftracer traces of the specified branch into 
+the specified local directory. It optionally provides interactive selection of directories to clone.
+
+.. code-block:: bash
+
+    <install-dir>/bin/usage: git_sparse_clone_interactive <remote repository> <branch> <local directory> [directory]
+
+Arguments for this script are:
+
+1. **-r repository name** name of remote repository
+2. **-b branch name**     name of remote branch
+3. **-l local directory** name of local directory to clone into       
+4. **-d directory**       optional comma-separated list of directories to sparse-clone.
+
+------------------
+Sparse Git Push
+------------------
+
+The script enables sparse git-push of dftracer traces to the specified remote repository
+and branch. It optionally provides interactive selection of directories to push.
+
+.. code-block:: bash
+
+    <install-dir>/bin/usage: git_sparse_push_interactive <remote repository> <branch> [directory]
+
+Arguments for this script are:
+
+1. **-r repository name** name of remote repository
+2. **-b branch name**     name of remote branch
+3. **-d directory**       optional comma-separated list of directories to sparse-push.

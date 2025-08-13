@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-void dft_finalize();
+void dft_finalize(bool force=false);
 
 inline void signal_handler(int sig) {  // GCOVR_EXCL_START
   DFTRACER_LOG_DEBUG("signal_handler", "");

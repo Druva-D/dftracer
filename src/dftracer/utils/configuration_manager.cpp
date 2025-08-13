@@ -10,13 +10,13 @@
 #include "utils.h"
 
 #define DFT_YAML_ENABLE "enable"
-// PROFILER
-#define DFT_YAML_PROFILER "profiler"
-#define DFT_YAML_PROFILER_INIT "init"
-#define DFT_YAML_PROFILER_LOG_FILE "log_file"
-#define DFT_YAML_PROFILER_DATA_DIRS "data_dirs"
-#define DFT_YAML_PROFILER_LOG_LEVEL "log_level"
-#define DFT_YAML_PROFILER_COMPRESSION "compression"
+// TRACER
+#define DFT_YAML_TRACER "tracer"
+#define DFT_YAML_TRACER_INIT "init"
+#define DFT_YAML_TRACER_LOG_FILE "log_file"
+#define DFT_YAML_TRACER_DATA_DIRS "data_dirs"
+#define DFT_YAML_TRACER_LOG_LEVEL "log_level"
+#define DFT_YAML_TRACER_COMPRESSION "compression"
 // GOTCHA
 #define DFT_YAML_GOTCHA "gotcha"
 #define DFT_YAML_GOTCHA_PRIORITY "priority"
@@ -57,14 +57,14 @@ dftracer::ConfigurationManager::ConfigurationManager()
       tids(true),
       bind_signals(false),
       throw_error(false),
-      write_buffer_size(10) {
+      write_buffer_size(16*1024*1024) {
   const char *env_conf = getenv(DFTRACER_CONFIGURATION);
   YAML::Node config;
   if (env_conf != nullptr) {
     config = YAML::LoadFile(env_conf);
-    if (config[DFT_YAML_PROFILER]) {
-      if (config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_LOG_LEVEL]) {
-        convert(config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_LOG_LEVEL]
+    if (config[DFT_YAML_TRACER]) {
+      if (config[DFT_YAML_TRACER][DFT_YAML_TRACER_LOG_LEVEL]) {
+        convert(config[DFT_YAML_TRACER][DFT_YAML_TRACER_LOG_LEVEL]
                     .as<std::string>(),
                 this->logger_level);
       }
@@ -79,31 +79,29 @@ dftracer::ConfigurationManager::ConfigurationManager()
   if (env_conf != nullptr) {
     this->enable = config[DFT_YAML_ENABLE].as<bool>();
     DFTRACER_LOG_DEBUG("YAML ConfigurationManager.enable %d", this->enable);
-    if (config[DFT_YAML_PROFILER]) {
-      if (config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_LOG_LEVEL]) {
-        convert(config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_LOG_LEVEL]
+    if (config[DFT_YAML_TRACER]) {
+      if (config[DFT_YAML_TRACER][DFT_YAML_TRACER_LOG_LEVEL]) {
+        convert(config[DFT_YAML_TRACER][DFT_YAML_TRACER_LOG_LEVEL]
                     .as<std::string>(),
                 this->logger_level);
       }
       DFTRACER_LOG_DEBUG("YAML ConfigurationManager.logger_level %d",
                          this->logger_level);
-      if (config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_INIT]) {
-        convert(
-            config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_INIT].as<std::string>(),
-            this->init_type);
+      if (config[DFT_YAML_TRACER][DFT_YAML_TRACER_INIT]) {
+        convert(config[DFT_YAML_TRACER][DFT_YAML_TRACER_INIT].as<std::string>(),
+                this->init_type);
       }
       DFTRACER_LOG_DEBUG("YAML ConfigurationManager.init_type %d",
                          this->init_type);
-      if (config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_LOG_FILE]) {
-        this->log_file = config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_LOG_FILE]
-                             .as<std::string>();
+      if (config[DFT_YAML_TRACER][DFT_YAML_TRACER_LOG_FILE]) {
+        this->log_file =
+            config[DFT_YAML_TRACER][DFT_YAML_TRACER_LOG_FILE].as<std::string>();
       }
       DFTRACER_LOG_DEBUG("YAML ConfigurationManager.log_file %s",
                          this->log_file.c_str());
-      if (config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_DATA_DIRS]) {
-        auto data_dirs_str =
-            config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_DATA_DIRS]
-                .as<std::string>();
+      if (config[DFT_YAML_TRACER][DFT_YAML_TRACER_DATA_DIRS]) {
+        auto data_dirs_str = config[DFT_YAML_TRACER][DFT_YAML_TRACER_DATA_DIRS]
+                                 .as<std::string>();
         if (data_dirs_str == DFTRACER_ALL_FILES) {
           this->trace_all_files = true;
         } else {
@@ -115,9 +113,9 @@ dftracer::ConfigurationManager::ConfigurationManager()
       DFTRACER_LOG_DEBUG("YAML ConfigurationManager.trace_all_files %d",
                          this->trace_all_files);
 
-      if (config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_COMPRESSION]) {
+      if (config[DFT_YAML_TRACER][DFT_YAML_TRACER_COMPRESSION]) {
         this->compression =
-            config[DFT_YAML_PROFILER][DFT_YAML_PROFILER_COMPRESSION].as<bool>();
+            config[DFT_YAML_TRACER][DFT_YAML_TRACER_COMPRESSION].as<bool>();
       }
       DFTRACER_LOG_DEBUG("YAML ConfigurationManager.compression %d",
                          this->compression);
@@ -279,8 +277,11 @@ dftracer::ConfigurationManager::ConfigurationManager()
     DFTRACER_LOG_DEBUG("ENV ConfigurationManager.throw_error %d",
                        this->throw_error);
     const char *env_compression = getenv(DFTRACER_TRACE_COMPRESSION);
-    if (env_compression != nullptr && strcmp(env_compression, "0") == 0) {
-      this->compression = false;
+    if (env_compression != nullptr) {
+      if (strcmp(env_compression, "1") == 0)
+        this->compression = true;
+      else
+        this->compression = false;
     }
     DFTRACER_LOG_DEBUG("ENV ConfigurationManager.compression %d",
                        this->compression);

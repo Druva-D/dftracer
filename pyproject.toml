@@ -5,7 +5,7 @@ requires = [
     "wheel",
     "ninja",
     "cmake>=3.12",
-    "zindex_py==0.0.5",
+    "zindex_py==0.0.6",
     "pybind11"
 ]
 build-backend = "setuptools.build_meta"
@@ -51,7 +51,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
   "pybind11", 
-  "zindex_py==0.0.5", 
+  "zindex_py==0.0.6", 
   "setuptools>=64", 
   "setuptools-scm>=8"
 ]
@@ -76,6 +76,9 @@ dfanalyzer = [
     'rich>=13.6.0', 
     'python-intervals>=1.10.0.post1', 
     'matplotlib>=3.7.3'
+]
+dynamo = [
+    'torch>=2.5.1'
 ]
 
 [tool]
@@ -131,6 +134,8 @@ script-files = [
   "script/dftracer_event_count",
   "script/dftracer_validate",
   "script/dftracer_pgzip",
+  "script/git_sparse_clone_interactive",
+  "script/git_sparse_push_interactive",
 ]
 
 [tool.setuptools.package-dir]

@@ -3,6 +3,7 @@
 //
 #include <cpp-logger/logger.h>
 #include <dftracer/brahma/posix.h>
+#include <dftracer/core/dftracer_main.h>
 
 static ConstEventNameType CATEGORY = "POSIX";
 
@@ -719,12 +720,27 @@ int brahma::POSIXDFTracer::fork() {
   BRAHMA_MAP_OR_FAIL(fork);
   DFT_LOGGER_START_ALWAYS();
   int ret = __real_fork();
+  if (ret == 0) {
+    // zero comes for forked childs
+    auto main = dftracer::Singleton<dftracer::DFTracerCore>::get_instance(
+        ProfilerStage::PROFILER_INIT, ProfileType::PROFILER_PRELOAD);
+    main->reinitialize();
+  }
   DFT_LOGGER_UPDATE(ret);
   DFT_LOGGER_END();
   return ret;
 }
+
 void brahma::POSIXDFTracer::exit(int status) {
   BRAHMA_MAP_OR_FAIL(exit);
-  dft_finalize();
+  DFTRACER_LOG_INFO("Calling finalize from exit", "");
+  dft_finalize(true);
   __real_exit(status);
+}
+
+void brahma::POSIXDFTracer::_exit(int status) {
+  BRAHMA_MAP_OR_FAIL(_exit);
+  DFTRACER_LOG_INFO("Calling finalize from _exit", "");
+  dft_finalize(true);
+  __real__exit(status);
 }
